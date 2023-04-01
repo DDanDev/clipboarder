@@ -1,6 +1,6 @@
 #Requires AutoHotKey v2
 ;;;;;; hold to store, click to paste
-waitT := -200 ; Time to wait between key presses (down)
+waitT := -200
 
 downUpCounters := Map("*Numpad1", [0, 0], "*Numpad2", [0, 0], "*Numpad3", [0, 0], "*Numpad4", [0, 0], "*Numpad5", [0, 0], "*Numpad6", [0, 0], "*Numpad7", [0, 0], "*Numpad8", [0, 0], "*Numpad9", [0, 0],)
 stores := Map()
@@ -29,7 +29,7 @@ handleHK(keyName)
     }
     else
     {
-        SendInput("{Blind}" SubStr(keyName, 2))
+        SendInput("{Blind}{" SubStr(keyName, 2) "}")
     }
 }
 
@@ -60,11 +60,11 @@ clipper(keyName)
         A_Clipboard := ""
         if GetKeyState("Control") {
             Send("{BLind}c")
-            ClipWait()
+            ClipWait(1)
         }
         else {
             Send("{Control down}c")
-            ClipWait()
+            ClipWait(1)
             Send("{Control up}")
         }
         stores[keyName] := A_Clipboard
