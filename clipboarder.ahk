@@ -1,77 +1,79 @@
 #Requires AutoHotKey v2
-;;;;;; hold to store, click to paste
-waitT := -200
+;;;;;; While holding a modifier key:
+;;;;;; hold a key to store (copy)
+;;;;;; press a key to paste as text what you stored with that same key
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; github.com/DDanDev;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-downUpCounters := Map("*Numpad1", [0, 0], "*Numpad2", [0, 0], "*Numpad3", [0, 0], "*Numpad4", [0, 0], "*Numpad5", [0, 0], "*Numpad6", [0, 0], "*Numpad7", [0, 0], "*Numpad8", [0, 0], "*Numpad9", [0, 0],)
+
+;Custom settings:
+;Time in ms to hold keys to save selection to that key
+waitT := 200
+
+;Keynames you want to use as "clippers". Check ahk docs for names of keys!
+keyNames := ["Numpad1", "Numpad2", "Numpad3", "Numpad4", "Numpad5", "Numpad6", "Numpad7", "Numpad8", "Numpad9"]
+;What modifier to hold while clicking or holding your clipper keys.
+modifier := "Control"
+
+
+;;;;;;;;;;;;;;;;;;;
+downUpCounters := Map()
 stores := Map()
+for (keyName in keyNames) {
+    Hotkey("*" . keyName, handleHK)
+    downUpCounters["*" . keyName] := [0, 0]
+    stores["*" . keyName] := ""
+}
+alreadyset := false
 
-Hotkey("*Numpad1", handleHK)
-Hotkey("*Numpad2", handleHK)
-Hotkey("*Numpad3", handleHK)
-Hotkey("*Numpad4", handleHK)
-Hotkey("*Numpad5", handleHK)
-Hotkey("*Numpad6", handleHK)
-Hotkey("*Numpad7", handleHK)
-Hotkey("*Numpad8", handleHK)
-Hotkey("*Numpad9", handleHK)
-
-
-handleHK(keyName)
-{
+handleHK(keyName) {
     global
-    if GetKeyState("Control")
-    {
-        SetTimer(() => clipper(keyName), waitT)
+    if GetKeyState(modifier) {
+        Critical
+        if (!alreadyset) {
+            alreadyset := true
+            SetTimer(() => clipper(keyName), -waitT)
+        }
         downUpCounters[keyName][1] += 1
-        KeyWait(SubStr(keyName, 2))
-        if (downUpCounters[keyName][1] > 0)
+        if (KeyWait(SubStr(keyName, 2), "T" . String(waitT / 1000))) {
             downUpCounters[keyName][2] += 1
-    }
-    else
-    {
+        }
+        Critical("Off")
+        KeyWait(SubStr(keyName, 2))
+    } else {
         SendInput("{Blind}{" SubStr(keyName, 2) "}")
     }
 }
 
-clipper(keyName)
-{
+clipper(keyName) {
     global
-    if (downUpCounters[keyName][1] > 0 and downUpCounters[keyName][2] > 0)
-    {
-        local previousclip := A_Clipboard
+    Critical
+    local previousclip := A_Clipboard
+    A_Clipboard := ""
+    Sleep(1)
+    if (downUpCounters[keyName][2] > 0) {
         A_Clipboard := stores[keyName]
-        Loop Max(downUpCounters[keyName][1], downUpCounters[keyName][2])
-        {
-            if GetKeyState("Control")
-            {
-                Send("{BLind}v")
-            }
-            else {
+        ClipWait(1)
+        Loop downUpCounters[keyName][1] {
+            if GetKeyState("Control") {
+                Send("{Blind}{v}")
+            } else {
                 Send("^v")
             }
         }
-        Sleep(100)
-        A_Clipboard := previousclip
-        local previousclip := ""
-    }
-    if (downUpCounters[keyName][1] > 0 and downUpCounters[keyName][2] = 0)
-    {
-        local previousclip := A_Clipboard
-        A_Clipboard := ""
+    } else if (downUpCounters[keyName][2] = 0) {
         if GetKeyState("Control") {
-            Send("{BLind}c")
-            ClipWait(1)
+            Send("{Blind}{c}")
+        } else {
+            Send("^c")
         }
-        else {
-            Send("{Control down}c")
-            ClipWait(1)
-            Send("{Control up}")
-        }
+        ClipWait(1)
         stores[keyName] := A_Clipboard
-        Sleep(100)
-        A_Clipboard := previousclip
-        local previousclip := ""
     }
     downUpCounters[keyName][1] := "0"
     downUpCounters[keyName][2] := "0"
+    alreadyset := false
+    Sleep(waitT / 2)
+    A_Clipboard := previousclip
 }
